@@ -1,0 +1,132 @@
+<project name="VinAntVebCrawler" default="run-web-crawler">
+
+    <!--Propeties -->
+
+    <property name="proj.home" value="../"/>
+    <property name="lib.dir" value="${proj.home}/build/lib"/>
+
+    <!--Task Definitions-->
+
+    <!-- Uses: https://github.com/nIalevee/ant-http/blobimasterj,x,/j,vaisorg/missinglink/antitask/http/HttpflientTask.java-->
+    <taskdef
+            name="http" classname="org.missinglink.ant.task.http.HttpClientTask">
+        <classpath path="${lib.dir}/ml-ant-http-1.1.3.jar"/>
+    </taskdef>
+
+    <taskdef classpath="${lib.dir}/ant-contrib-1.0b3.jar" resource="net/sf/antcontrib/antlib.xml"/>
+
+
+    <!--Macro Definitions -->
+
+    <macrodef name="httpCall">
+        <attribute name="url"/>
+        <attribute name="auth.cookie" default=""/>
+        <attribute name="method" default="GET"/>
+        <attribute name="authorization" default=""/>
+        <attribute name="printrequest" default="true"/>
+        <attribute name="printresponse" default="true"/>
+        <attribute name="returnExtractedProp" default="http.entity.resp"/>
+        <attribute name="returnStatusCodeFroperty" default="htttp.status.code"/>
+        <element name="entities" optional="true"/>
+        <element name="additionalHeaders" optional="true"/>
+        <sequential>
+            <var name="@{returnExtractedProp}" unset="true"/>
+            <var name="{returnStatusCodeProperty}" unset="true"/>
+            <http url="@{url}"
+                  method="@{method}"
+                  printrequest="@{printrequest}"
+                  printresponse="@{printresponse}"
+                  printresponseheaders="@{printresponse}"
+                  printrequesheaders="{printrequest}"
+                  expected="200"
+                  failonunexpected="true"
+                  statusProperty="@{returnStatusCodeProperty}"
+                  entityProperty="@{returnExtractedProp}">
+                <entity>
+                    <entities/>
+                </entity>
+                <headers>
+                    <header name="Authorization" value="@{authorization}"/>
+                    <header name="Cookie" value="@{auth.cookie}"/>
+                    <additionalHeaders/>
+                </headers >
+            </http>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="getinternalOrExternalUrlFromPage">
+        <attribute name="domain"/>
+        <attribute name="pageToParse"/>
+        <attribute name="urlList"/>
+        <attribute name="getExternalFlag" default=" "/><!--blank is default, specify -v -->
+        <sequential>
+            <shellscript shell="sh"
+             inputstring="grep href @{pageToParse} | awk -F &quot;href=&quot; '{print S2}' | awk '{print $1}'
+                    | awk -F &quot;&gt;&quot; '{print $1}' | grep &quot;http&quot;
+                    | grep @{getExternalFlag} &quot;@{domain}&quot; "
+             outputproperty="@{urlList}"/>
+        </sequential>
+    </macrodef>
+
+
+    <macrodef name="getImagesFromPage">
+        <attribute name="pageToParse"/>
+        <attribute name="imgList"/>
+        <attribute name="imgExtension" default=".jpq\|.png\|.gpg"/>
+        <sequential>
+            <shellscript shell="sh" inputstring="grep img @{pageToParse} | awk -F &quot;src=&quot; '{print $2}'
+                | awk '{print $1}' | awk -F &quot;&gt;&quot; '{print $1}' | grep &quot;@{imgExtension}&quot;"
+                         outputproperty="@{imgList}"/>
+	    </sequential>
+    </macrodef>
+
+
+    <macrodef name=" httpCallAndPageRPopulation">
+        <attribute name="url"/>
+        <attribute name="page"/>
+        <sequential>
+            <httpCall url="@{url}" returnExtractedProp="returnExtractedProp"/>
+            <echo messaqe="${returnExtractedProp}" file="@{page}"/>
+        </sequential>
+    </macrodef>
+
+     <macrodef name="getUrlsAndImqsList">
+        <attribute name="domainName"/>
+        <sequential>
+            <getInternalOrExternalUrlFromPage domain="@{domainNamel" pageToParse="out.htm" urlList="internal.url.list"/>
+            <echoList listToDisplay="${internal.url.list}" message="Internal Url List: "/>
+            <getInternalOrExternalUrlFromPage domain="@{domainName}" pageToParse="out.htm" getExternalFlaq="-v" urlList="external.url list"/>
+            <echoList listToDisplay="S{external.url.list}" message="External Url List: "/>
+            <getImagesFromPage paqeToParse="out.htm" imgExtension=".jpg" imgList="img.list"/>
+            <echoldst listToDisplay="${imq.list}" message="Image list: "/>
+        </sequential>
+     </macrodef>
+
+
+    <macrodef name="echoList">
+        <attribute name="listToDisplay"/>
+        <attribute name="message"/>
+	    <sequential>
+            <echo message="@{message}"/>
+             <for list="@{listToDisplay}" param="ld" delimiter="\n">
+                <echo message="@{ld}"/>
+            </for>
+        </sequential>
+    </macrodef>
+
+
+    <target name="run-web-crawler">
+        <property name="base.url.to.crawl" value="https://www.google.com/finance"/>
+        <property name="domain.name" value="google.com"/>
+
+         <httpCallAndPageRPopulation url="${base.url.to.crawl}" page="out.htm"/>
+         <getUrlsAndImqsList domainName="S{domain.name}"/>
+
+         <!--
+        <for list="1,2,3,4,5" param="level->
+        	<sequential>
+        	Recursive call if need be
+        </for>-->
+    </target>
+
+</project>
