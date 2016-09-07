@@ -129,4 +129,20 @@
         </for>-->
     </target>
 
+    <target name="vin-java-web-crawl">
+        <property name="project.class.path" value="${proj.home}/classes"/>
+        <delete dir="${project.class.path}" quiet="true"/>
+        <mkdir dir="${project.class.path}"/>
+
+        <javac srcdir="${proj.home}/src/com/vin/crawl" destdir="${project.class.path}">
+            <include name="VinWebCrawler.java"/>
+        </javac>
+
+        <java classpath="${project.class.path}" classname="com.vin.crawl.VinWebCrawler" failonerror="true">
+            <sysproperty key="base.url" value="https://www.google.com/finance"/>
+            <sysproperty key="threshold.depth" value="10"/>
+        </java>
+
+    </target>
+    
 </project>
